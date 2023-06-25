@@ -1,0 +1,63 @@
+{
+	"config_number":1,
+	"board_name":"j5dvb",
+	"config_0":{
+		"comment": "ar0820(sensing) rggb 3840x2160 pwl raw12 30fps on host1 max9296",
+		"interface_type": "mipi",
+                "lpwm_num":1,
+                "lpwm_0":{
+                        "lpwm_index":1,
+                        "lpwm_enable":"0xf",
+                        "trigger_mode":8,
+                        "offset_us":[
+                        1,
+                        1,
+                        1,
+                        1
+                        ],
+                        "period_us":[
+                        33333,
+                        33333,
+                        33333,
+                        33333
+                        ],
+                        "duty_us":[
+                        10,
+                        10,
+                        10,
+                        10
+                        ]
+                },
+		"deserial_num":1,
+		"deserial_0":{
+			"deserial_name":"max96712",
+			"deserial_addr":"0x29",
+			"bus_type":0,
+			"bus_num":6,
+			"power_mode":1,
+			"gpio_pin":[453,309],
+			"gpio_level":[0,0]
+		},
+		"port_number":1,
+		"port_0":{
+			"dev_port":0,
+			"bus_type":0,
+			"bus_num":6,
+			"entry_num":0,
+			"serial_addr":"0x40",
+			"sensor_addr":"0x18",
+			"sensor_name":"ar0820",
+			"reg_width":16,
+			"extra_mode":1,
+			"config_index":2,
+			"sensor_mode":5,
+			"fps":30,
+			"resolution":2160,
+			"deserial_index":0,
+			"deserial_port":0,
+			"data_path":"configs/vio/camera/rx0_1V_max96712_ar0820/cim_config.json",
+			"config_path":"/system/etc/cam/hb_mipi_ar0820_raw12_%dfps_%dP.json"
+		}
+	}
+}
+

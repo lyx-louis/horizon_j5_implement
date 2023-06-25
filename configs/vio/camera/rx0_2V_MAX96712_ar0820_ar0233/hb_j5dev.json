@@ -1,0 +1,57 @@
+{
+	"config_number":1,
+	"board_name":"j5dvb",
+	"config_0":{
+		"comment_0": "ar0820(sunny) rggb 3840x2160 pwl raw12 30fps on host1 max96712 port0",
+		"comment_1": "ar0233(sunny) rggb 2048x1280 pwl raw12 30fps on host1 max96712 port1",
+		"interface_type": "mipi",
+		"deserial_num":1,
+		"deserial_0":{
+			"deserial_name":"max96712",
+			"deserial_addr":"0x29",
+			"bus_type":0,
+			"bus_num":0,
+			"power_mode":0
+		},
+		"port_number":2,
+		"port_0":{
+			"dev_port":0,
+			"bus_type":0,
+			"bus_num":0,
+			"entry_num":0,
+			"serial_addr":"0x41",
+			"sensor_addr":"0x19",
+			"sensor_name":"ar0820",
+			"reg_width":16,
+			"extra_mode":0,
+			"config_index":8,
+			"sensor_mode":5,
+			"fps":30,
+			"resolution":2160,
+			"deserial_index":0,
+			"deserial_port":0,
+			"data_path":"configs/vio/camera/rx0_2V/cim_config.json",
+			"config_path":"/system/etc/cam/hb_mipi_ar0820_raw12_%dfps_%dP.json"
+		},
+		"port_1":{
+			"dev_port":1,
+			"bus_type":0,
+			"bus_num":0,
+			"entry_num":0,
+			"serial_addr":"0x42",
+			"sensor_addr":"0x12",
+			"sensor_name":"ar0233",
+			"reg_width":16,
+			"extra_mode":16,
+			"config_index":0,
+			"sensor_mode":5,
+			"fps":30,
+			"resolution":1280,
+			"deserial_index":0,
+			"deserial_port":1,
+			"data_path":"configs/vio/camera/rx0_2V/cim_config.json",
+			"config_path":"/system/etc/cam/hb_mipi_ar0820d_raw12_30fps_2160P.json"
+		}
+	}
+}
+

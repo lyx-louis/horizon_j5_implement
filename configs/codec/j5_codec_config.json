@@ -1,0 +1,58 @@
+{
+  "chn_0": {
+    "codec_type": 3,
+    "image_width": 1920,
+    "image_height": 1080,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_1": {
+    "codec_type": 3,
+    "image_width": 1920,
+    "image_height": 1080,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_2": {
+    "codec_type": 3,
+    "image_width": 1920,
+    "image_height": 1080,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_3": {
+    "codec_type": 3,
+    "image_width": 1920,
+    "image_height": 1080,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_4": {
+    "codec_type": 3,
+    "image_width": 1920,
+    "image_height": 1080,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_5": {
+    "codec_type": 3,
+    "image_width": 1920,
+    "image_height": 1080,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_6": {
+    "codec_type": 3,
+    "image_width": 384,
+    "image_height": 288,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  },
+  "chn_7": {
+    "codec_type": 3,
+    "image_width": 384,
+    "image_height": 288,
+    "frame_buf_count": 3,
+    "jpeg_quality": 80
+  }
+}

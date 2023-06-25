@@ -1,0 +1,92 @@
+{
+  "config_number": 2,
+  "board_name": "xj5dvb",
+  "config_0": {
+    "comment": "ar0233(sensing) rggb 1920x1080 pwl raw12 30fps on host1 max9296",
+    "interface_type": "mipi",
+    "lpwm_num": 1,
+    "lpwm_0": {
+      "lpwm_index": 1,
+      "lpwm_enable": "0xf",
+      "trigger_mode": 8,
+      "offset_us": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "period_us": [
+        33333,
+        33333,
+        33333,
+        33333
+      ],
+      "duty_us": [
+        10,
+        10,
+        10,
+        10
+      ]
+    },
+    "deserial_num": 1,
+    "deserial_0": {
+      "deserial_name": "max9296",
+      "deserial_addr": "0x48",
+      "bus_type": 0,
+      "bus_num": 1,
+      "power_mode": 0
+    },
+    "port_number": 1,
+    "port_0": {
+      "dev_port": 0,
+      "bus_type": 0,
+      "bus_num": 1,
+      "entry_num": 1,
+      "serial_addr": "0x40",
+      "sensor_addr": "0x10",
+      "sensor_name": "ar0233",
+      "reg_width": 16,
+      "extra_mode": 3,
+      "config_index": 3584,
+      "sensor_mode": 5,
+      "fps": 30,
+      "resolution": 1280,
+      "deserial_index": 0,
+      "deserial_port": 0,
+      "data_path": "/app/bin/vps/vpm/cfg/sen_cim_isp0_pym0_1080p_ar0233/cim_config.json",
+      "config_path": "/system/etc/cam/hb_mipi_ar0233_raw12_%dfps_%dP.json"
+    }
+  },
+  "config_1": {
+    "comment": "ar0233(sensing) rggb 1920x1080 pwl raw12 30fps on host1 max96712",
+    "interface_type": "mipi",
+    "deserial_num": 1,
+    "deserial_0": {
+      "deserial_name": "max96712",
+      "deserial_addr": "0x29",
+      "bus_type": 0,
+      "bus_num": 1,
+      "power_mode": 0
+    },
+    "port_number": 1,
+    "port_0": {
+      "dev_port": 0,
+      "bus_type": 0,
+      "bus_num": 1,
+      "entry_num": 1,
+      "serial_addr": "0x40",
+      "sensor_addr": "0x10",
+      "sensor_name": "ar0233",
+      "reg_width": 16,
+      "extra_mode": 6,
+      "config_index": 3072,
+      "sensor_mode": 5,
+      "fps": 30,
+      "resolution": 1280,
+      "deserial_index": 0,
+      "deserial_port": 0,
+      "data_path": "/app/bin/vps/vpm/cfg/sen_cim_isp0_pym0_1080p_ar0233/cim_config.json",
+      "config_path": "/system/etc/cam/hb_mipi_ar0233_raw12_%dfps_%dP.json"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "config_index": [0],
+  "config_0": {
+    "sensor_type": "lidar",
+    "chnl_ids": [0],
+    "max_buf_count": 3,
+    "source_cfg_file": "configs/sio/lidar_source.json"
+  }
+}

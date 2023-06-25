@@ -1,0 +1,20 @@
+syntax = "proto2";
+package ImageInfo;
+
+message image_info {
+    repeated uint32 image_data = 1;
+    enum Tasktype
+    {
+        classification = 0;
+        detection = 1;
+        segmentation = 2;
+        instance = 3;
+    }
+    required Tasktype task_type = 2;
+    required int32 image_width = 3;
+    required int32 image_height = 4;
+    required string image_name = 5;
+    optional string model_name = 6;
+    optional int32 image_valid_height = 7;
+    optional int32 image_valid_width = 8;
+}

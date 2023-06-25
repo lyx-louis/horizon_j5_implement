@@ -1,0 +1,160 @@
+/**
+ * @file main.cpp
+ * @brief : J5 demo
+ * 
+ * @author liuzhiquan (liuzhiquan@jmadas.com)
+ * @version 0.1
+ * @date 2023-04-11
+ * 
+ * @copyright Copyright (c) 2023, 武汉极目智能技术有限公司
+ * 
+ * @par 修改日志
+ * 
+ */
+
+#include "comm_api.h"
+#include "rte_client_api.h"
+#include <vector>
+
+static s32 g_s32Fps = 30;					// 设置输出帧率
+static u32 g_u32Topic = 1;					// 设置消息发布ID
+
+#define PUB_MESSAGE_NUM_MAX		100
+
+typedef struct {
+	s32 s32Type;
+	s32 s32Size;
+} TMessageInfo;
+
+typedef struct {
+	s32 s32PubNum;
+	TMessageInfo tPubInfo[PUB_MESSAGE_NUM_MAX];
+	u8 *ptPubData[PUB_MESSAGE_NUM_MAX];
+} TMessageData;
+
+static u32 PUB_HEAD_START = 0x5A5AA5A5;
+static u32 PUB_HEAD_OK_END = 0xA5AA5A5A;
+static u32 PUB_HEAD_FAIL_END = 0xA5AA5A5B;
+
+s32 pub_data(u32 topic, TMessageData *ptPubData)
+{
+	s32 s32PubFail = 0;
+
+	if (ptPubData == NULL) {
+		return -1;
+	}
+
+	{
+		s8 *ptr = (s8 *)&PUB_HEAD_START;
+		if (RTE_API_SendMsg(topic, ptr, sizeof(u32)) != 0) {
+			log_color_err("RTE_API_SendMsg head start fail");
+			return -1;
+		}
+	}
+
+	do {
+		if (RTE_API_SendMsg(topic, (s8 *)ptPubData, sizeof(s32) + sizeof(TMessageInfo)*PUB_MESSAGE_NUM_MAX) != 0) {
+			log_color_err("RTE_API_SendMsg data head fail");
+			s32PubFail = 1;
+			break;
+		}
+
+		for (s32 i=0; i<ptPubData->s32PubNum; i++) {
+			s32 offset = 0;
+			s32 s32SendMax = RTE_MSG_MAX_LENGTH / 2;
+
+			while(offset < ptPubData->tPubInfo[i].s32Size) {
+				s32 sendLen = ((ptPubData->tPubInfo[i].s32Size - offset) <= s32SendMax) ? (ptPubData->tPubInfo[i].s32Size - offset) : s32SendMax;
+				if (RTE_API_SendMsg(topic, (s8 *)ptPubData->ptPubData[i] + offset, sendLen) != 0) {
+					log_color_err("RTE_API_SendMsg data(%d) fail", i);
+					s32PubFail = 1;
+					break;
+				}
+				offset += sendLen;
+				// log_debug("send %d", sendLen);
+			}
+
+			if (s32PubFail) {
+				break;
+			}
+		}
+	} while(0);
+
+	{
+		s8 *ptr = (s32PubFail) ? (s8 *)&PUB_HEAD_FAIL_END : (s8 *)&PUB_HEAD_OK_END;
+		if (RTE_API_SendMsg(topic, ptr, sizeof(u32)) != 0) {
+			log_color_err("RTE_API_SendMsg head end fail");
+		}
+	}
+
+	return 0;
+}
+
+#define CLIENT_IP_ADDR	NULL
+// #define CLIENT_IP_ADDR	"192.168.30.106"
+
+s32 main(s32 argc, s8 **argv)
+{
+	api_comm_setWorkSpace();
+
+	log_init(NULL);
+
+	if (RTE_API_CreateSendAddr(CLIENT_IP_ADDR) != 0) {
+		log_color_err("RTE_API_CreateSendAddr fail");
+		return -1;
+	}
+
+	TMessageData tPubData = {0};
+
+	#define GET_FILE_NUM	9
+	TCommBuff tGetFile[GET_FILE_NUM] = {0};
+	tGetFile[0] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/a.jpg");
+	tGetFile[1] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/b.jpg");
+	tGetFile[2] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/c.jpg");
+	tGetFile[3] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/d.jpg");
+	tGetFile[4] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/f.jpg");
+	tGetFile[5] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/g.jpg");
+	tGetFile[6] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/1.bin");
+	tGetFile[7] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/2.bin");
+	tGetFile[8] = api_comm_readFileToBuff("/home/zq/Desktop/jm-git/j5/test/conf/3.bin");
+	
+	tPubData.s32PubNum = GET_FILE_NUM;
+	for (s32 i=0; i<tPubData.s32PubNum; i++) {
+		tPubData.tPubInfo[i].s32Type = i;
+		tPubData.tPubInfo[i].s32Size = tGetFile[i].s32Size;
+		tPubData.ptPubData[i] = tGetFile[i].ptData;
+		log_color_info("<%d> --- %d", i, tGetFile[i].s32Size);
+	}
+
+	for (;;) {
+		f64 f64Stime = api_comm_getSysMs();
+
+		pub_data(g_u32Topic, &tPubData);
+
+		// delay
+		{
+			f64 f64Ntime = api_comm_getSysMs();
+			s32 s32DelayMs = 1000.0 / g_s32Fps - (f64Ntime - f64Stime);
+			if (s32DelayMs > 0) {
+				api_comm_delayMs(s32DelayMs);
+			}
+		}
+
+		// show fps
+		{
+			static s32 s32Count = 0;
+			static f64 f64Start = 0;
+			s32Count ++;
+			f64 f64Ntime = api_comm_getSysMs();
+			if (f64Ntime - f64Start > 5000.) {
+				f64Start = f64Ntime;
+				log_color_debug("Pub count: %d, fps: %0.1f", s32Count, (f32)s32Count/(f32)5.0);
+				s32Count = 0;
+			}
+		}
+	}
+	
+	log_deinit();
+
+	return 0;
+}

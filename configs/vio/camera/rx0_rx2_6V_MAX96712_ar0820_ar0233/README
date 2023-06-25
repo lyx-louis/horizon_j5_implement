@@ -1,0 +1,6 @@
+MAX96712 + ar0820(sunny 3840*2160)*1 + ar0233(sunny 2048*1280)*5 + mipirx1 + cim + isp0 + pym0
+
+sh vio_test_case.sh dul_sen_cim_isp0_pym0_ws0820_ws0233
+
+History:
+   Created and used for JiMu

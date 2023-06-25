@@ -1,0 +1,15 @@
+{
+    "model_file_path": "./configs/model/fcos_efficientnetb0_512x512_nv12.bin",
+    "community_qat": true,
+    "pyramid_level": 0,
+    "strides": [
+        8,
+        16,
+        32,
+        64,
+        128
+    ],
+    "class_num": 80,
+    "score_threshold": 0.5,
+    "topk": 5
+}

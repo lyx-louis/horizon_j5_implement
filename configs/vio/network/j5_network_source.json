@@ -1,0 +1,45 @@
+{
+  "chn_0": {
+    "ip_port": "tcp://*:6688",
+    "data_type": 3,
+    "height": 1920,
+    "width": 1080,
+    "with_image_name": true
+  },
+  "chn_1": {
+    "ip_port": "tcp://*:6686",
+    "data_type": 3,
+    "height": 1920,
+    "width": 1080,
+    "with_image_name": true
+  },
+  "chn_2": {
+    "ip_port": "tcp://*:6690",
+    "data_type": 3,
+    "height": 1920,
+    "width": 1080,
+    "with_image_name": true
+  },
+  "chn_3": {
+    "ip_port": "tcp://*:6682",
+    "data_type": 3,
+    "height": 1920,
+    "width": 1080,
+    "with_image_name": true
+  },
+  "chn_4": {
+    "ip_port": "tcp://*:6680",
+    "data_type": 3,
+    "height": 1920,
+    "width": 1080,
+    "with_image_name": true
+  },
+  "chn_5": {
+    "ip_port": "tcp://*:6684",
+    "data_type": 3,
+    "height": 1920,
+    "width": 1080,
+    "with_image_name": true
+  }
+}
+

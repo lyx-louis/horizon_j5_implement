@@ -1,0 +1,161 @@
+/**
+ * Copyright Horizon Robotics
+ */
+#include <thread>
+
+#include "hobot/hobot.h"
+#include "hobotlog/hobotlog.hpp"
+#include "modules/codec_module.h"
+#include "modules/inference_module.h"
+#include "modules/sample_observer.h"
+#include "modules/vio_module.h"
+#include "modules/sio_module.h"
+#include "modules/web_display_module.h"
+#include "rte_server_api.h"
+
+using hobot::spMessage;
+using J5Sample::CodecModule;
+using J5Sample::InferenceModule;
+using J5Sample::J5FrameMessage;
+using J5Sample::SampleObserver;
+using J5Sample::VioModule;
+using J5Sample::SioModule;
+using J5Sample::WebDisplayModule;
+
+#define EN_SENSOR_INPUT 0
+
+typedef std::shared_ptr<hobot::Module> spModule;
+static bool exit_ = false;
+
+static void signal_handle(int param) {
+  std::cout << "recv signal " << param << ", stop" << std::endl;
+  if (param == SIGINT) {
+    exit_ = true;
+  }
+}
+
+#include "ipc_demo.h"
+
+void *ret_serevr(void *arg)
+{
+  RTE_API_ServerStart();
+  return NULL;
+}
+
+int z_creat_pthread(void *(*start_routine)(void*), void *arg)
+{
+	pthread_t pid;
+
+	int ret = pthread_create(&pid, NULL, start_routine, arg);
+	pthread_detach(pid);
+
+	return ret;
+}
+
+
+int main(int argc, char **argv) {
+  ipc_set_channel_t camera_init = {9, 0, 1, 2, 3, 4, 5,6,7,8};
+  Ipc_init(camera_init);
+
+   z_creat_pthread(ret_serevr, NULL);
+
+  LogTimestamps(true);
+  std::string log_level;
+  if (argv[1] == nullptr) {
+    std::cout << "set default log level: [-i] ";
+    log_level = "-i";
+  } else {
+    log_level = argv[1];
+  }
+  if (log_level == "-i") {
+    SetLogLevel(HOBOT_LOG_INFO);
+  } else if (log_level == "-d") {
+    SetLogLevel(HOBOT_LOG_DEBUG);
+  } else if (log_level == "-w") {
+    SetLogLevel(HOBOT_LOG_WARN);
+  } else if (log_level == "-e") {
+    SetLogLevel(HOBOT_LOG_ERROR);
+  } else if (log_level == "-f") {
+    SetLogLevel(HOBOT_LOG_FATAL);
+  } else {
+    std::cout << "set default log level: [-i] " << std::endl;
+    SetLogLevel(HOBOT_LOG_INFO);
+  }
+  LOGD << "Start Sample.";
+  hobot::Engine *engine = hobot::Engine::NewInstance();
+  hobot::Workflow *workflow = engine->NewWorkflow();
+
+  signal(SIGINT, signal_handle);
+  signal(SIGPIPE, signal_handle);
+
+  int ret = 0;
+#if (EN_SENSOR_INPUT == 1)
+  std::string sio_config_file = "./configs/sio/sio_config.json";
+  auto sio_module = std::make_shared<SioModule>(sio_config_file);
+  ret = sio_module->LoadConfig();
+  HOBOT_CHECK(0 == ret) << "SioModule::LoadConfig failed, ret=" << ret;
+#endif
+
+  std::string vio_config_file = "./configs/vio/j5_vio_config.json";
+  auto vio_module =
+      std::make_shared<VioModule>(vio_config_file);
+  std::vector<int> vio_chnls_list;
+  ret = vio_module->LoadConfig(vio_chnls_list);
+  HOBOT_CHECK(0 == ret && !vio_chnls_list.empty())
+      << "VioModule::LoadConfig failed, ret=" << ret;
+
+  std::string codec_config_file = "./configs/codec/j5_codec_config.json";
+  auto codec_module =
+      std::make_shared<CodecModule>(codec_config_file, vio_chnls_list);
+
+  std::string inference_config_file = "./configs/model/inference_config.json";
+  auto inference_module = std::make_shared<InferenceModule>(
+      inference_config_file, vio_chnls_list);
+
+  std::string webdisplay_config_file = "";
+  auto web_display_module = std::make_shared<WebDisplayModule>(
+      webdisplay_config_file, vio_chnls_list);
+
+  // Organize workflow using already created modules.
+#if (EN_SENSOR_INPUT == 1)
+  workflow->From(sio_module.get())->To(inference_module.get(), 1);
+#endif
+  workflow->From(vio_module.get())->To(inference_module.get(), 0);
+  //workflow->From(vio_module.get())->To(codec_module.get(), 0);
+  //workflow->From(inference_module.get())->To(web_display_module.get(), 0);
+  //workflow->From(codec_module.get())->To(web_display_module.get(), 1);
+
+  int thread_idx = 0;
+#if (EN_SENSOR_INPUT == 1)
+  engine->ExecuteOnThread(sio_module.get(), 0, thread_idx++);
+#endif
+  engine->ExecuteOnThread(vio_module.get(), 0, thread_idx++);
+  //engine->ExecuteOnThread(inference_module.get(), 0, thread_idx++);
+ // engine->ExecuteOnThread(codec_module.get(), 0, thread_idx++);
+ // engine->ExecuteOnThread(web_display_module.get(), 0, thread_idx++);
+
+  std::shared_ptr<SampleObserver> out = std::make_shared<SampleObserver>();
+//  hobot::spRunContext run_task =
+//      workflow->Run({std::make_pair(web_display_module.get(), 0)}, out.get());
+  hobot::spRunContext run_task =
+      workflow->Run({std::make_pair(inference_module.get(), 0)}, out.get());
+  ret = run_task->Init();
+  HOBOT_CHECK(0 == ret) << "Workflow run_task failed!";
+  workflow->Feed(run_task, vio_module.get(), 0, nullptr);
+#if (EN_SENSOR_INPUT == 1)
+  workflow->Feed(run_task, sio_module.get(), 0, nullptr);
+#endif
+  LOGD << "Feed input trigger frame.";
+
+  // sleep
+  while (!exit_) {
+    std::this_thread::sleep_for(std::chrono::microseconds(60));
+  }
+
+  workflow->Reset();
+  LOGD << "Sample End";
+  delete workflow;
+  delete engine;
+
+  return 0;
+}

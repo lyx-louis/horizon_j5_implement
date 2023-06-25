@@ -1,0 +1,32 @@
+{
+  "config_index": 3,
+  "board_name": "j5dev",
+  "config_0": {
+    "data_source": "mipi_camera",
+    "chnl_ids": [0],
+    "max_vio_buffer": 3,
+    "source_cfg_file": "configs/vio/camera/j5_camera_source.json",
+    "vpm_cfg_file": "configs/vio/camera/rx1_1V_max9296_ar0233/vpm_config.json"
+  },
+  "config_1": {
+    "data_source": "mipi_camera",
+    "chnl_ids": [0],
+    "max_vio_buffer": 3,
+    "source_cfg_file": "configs/vio/camera/j5_camera_source.json",
+    "vpm_cfg_file": "configs/vio/camera/rx1_1V_max96712_ar0233/vpm_config.json"
+  },
+  "config_2": {
+    "data_source": "network_feedback",
+    "chnl_ids": [0,1,2,3,4,5],
+    "max_vio_buffer": 8,
+    "source_cfg_file": "configs/vio/network/j5_network_source.json",
+    "vpm_cfg_file": "configs/vio/network/vpm_ddr_pym_1080p_4v.json"
+  },
+  "config_3": {
+    "data_source": "file_feedback",
+    "chnl_ids": [0,1,2,3],
+    "max_vio_buffer": 3,
+    "source_cfg_file": "configs/vio/videofile/videofile_source.json",
+    "vpm_cfg_file": "configs/vio/videofile/vpm_ddr_pym_1080p_4v.json"
+  }
+}

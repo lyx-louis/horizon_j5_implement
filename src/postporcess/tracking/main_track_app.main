@@ -1,0 +1,276 @@
+#include <string>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/imgproc/types_c.h>
+#include <opencv2/videoio.hpp>
+#include <opencv2/video.hpp>
+#include <vector>
+#include <iostream>
+#include "object_tracker.h"
+#include "object_tracking_3d.h"
+#include "run_session.h"
+
+using namespace cv;
+using namespace std;
+
+#define WIDTH_1920 1920
+#define HEIGHT_1080 1080
+#define FRAMERATE_20 20
+
+#define WIDTH_1280 1280
+#define HEIGHT_720 720
+#define FRAMERATE_13 13
+
+#define AI_CROP_FULL_PATH_NEW "./lib/x64/det_crop.pb"
+#define AI_FULL_PATH_NEW "./lib/x64/det_full.pb"
+
+#define MAIN_WIN "main"
+
+class TrackAppTest
+{
+public:
+	void InitSession(int row = HEIGHT_1080, int col = WIDTH_1920)
+	{
+		vector<string> out_node_str;
+		out_node_str.push_back("box/outputs");
+		out_node_str.push_back("class/score_outputs");
+		out_node_str.push_back("class/class_outputs");
+		out_node_str.push_back("seg/outputs");
+		// out_node_str.push_back("keypoint/key_points_outputs_all");
+		// out_node_str.push_back("keypoint/kpscores_outputs_all");
+		detect_obj.InitDetect(AI_FULL_PATH_NEW, AI_CROP_FULL_PATH_NEW, m_frame.cols, m_frame.rows, IMG_W, IMG_H, "normalized_input_image_tensor", out_node_str);
+	}
+
+	void UninitSession()
+	{
+		detect_obj.UninitDetect();
+	}
+
+	void cleanup()
+	{
+		printf("Clean Track para!\n");
+		frame_cnt = 0;
+		continue_flag = 0;
+	}
+
+	void getDetectFromDet(std::vector<DetObj> dets, DetectBoxes &detectBoxes)
+	{
+		detectBoxes.numRect = 0;
+		for (int i = 0; i < dets.size(); i++)
+		{
+			if (dets[i].label <= front_rear || dets[i].label == tricycle)
+			{
+				detectBoxes.boxRects[detectBoxes.numRect].label = dets[i].label;
+				detectBoxes.boxRects[detectBoxes.numRect].prob = dets[i].score;
+				detectBoxes.boxRects[detectBoxes.numRect].fused = 0;
+				detectBoxes.boxRects[detectBoxes.numRect].rect.x = dets[i].xmin;
+				detectBoxes.boxRects[detectBoxes.numRect].rect.y = dets[i].ymin;
+				detectBoxes.boxRects[detectBoxes.numRect].rect.width = dets[i].xmax - dets[i].xmin;
+				detectBoxes.boxRects[detectBoxes.numRect].rect.height = dets[i].ymax - dets[i].ymin;
+
+				// memcpy(detectBoxes.boxRects[detectBoxes.numRect].kp.key_points, dets[i].kp, 4 * sizeof(PointF));
+				// memcpy(detectBoxes.boxRects[detectBoxes.numRect].kp.scores, dets[i].kps, 4 * sizeof(float));
+
+				detectBoxes.numRect++;
+				if (detectBoxes.numRect >= MAX_OBJECT_NUM)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	void drawKalmanTrackObjects(TrackingBox *track_box, int track_num, cv::Scalar color, int frame_no)
+	{
+		double font_scale = 0.35; // m_frame.cols * 1.0f / aw;
+		int thick_ness = 1;		  // (int)(1.5 * font_scale + 0.5);
+
+		char textStr[256] = {0};
+		sprintf_s(textStr, sizeof(textStr), "frame no: %d", frame_no);
+		putText(m_frame, textStr, Point(m_frame.cols / 2 - 80, 70), HersheyFonts::FONT_HERSHEY_DUPLEX, font_scale, Scalar(0, 0, 255), thick_ness);
+
+		for (int i = 0; i < track_num; i++)
+		{
+			Scalar s = color;
+
+			if (track_box[i].clsId > bicycle)
+				continue;
+
+			if (track_box[i].used3d)
+			{
+				line(m_frame, Point(track_box[i].side[0].x, track_box[i].side[0].y), Point(track_box[i].side[1].x, track_box[i].side[1].y), CV_RGB(0, 255, 0), thick_ness);
+				line(m_frame, Point(track_box[i].side[1].x, track_box[i].side[1].y), Point(track_box[i].side[2].x, track_box[i].side[2].y), CV_RGB(0, 255, 0), thick_ness);
+				line(m_frame, Point(track_box[i].side[2].x, track_box[i].side[2].y), Point(track_box[i].side[3].x, track_box[i].side[3].y), CV_RGB(0, 255, 0), thick_ness);
+				line(m_frame, Point(track_box[i].side[3].x, track_box[i].side[3].y), Point(track_box[i].side[0].x, track_box[i].side[0].y), CV_RGB(0, 255, 0), thick_ness);
+				rectangle(m_frame, Rect(track_box[i].box.x, track_box[i].box.y, track_box[i].box.width, track_box[i].box.height), CV_RGB(0, 0, 255), thick_ness);
+				rectangle(m_frame, Rect(track_box[i].fb.x, track_box[i].fb.y, track_box[i].fb.width, track_box[i].fb.height), s, thick_ness);
+			}
+			else
+			{
+				rectangle(m_frame, Rect(track_box[i].box.x, track_box[i].box.y, track_box[i].box.width, track_box[i].box.height), s, thick_ness);
+			}
+
+			sprintf_s(textStr, sizeof(textStr), "%d", track_box[i].objId);
+			putText(m_frame, textStr, Point(track_box[i].box.x - 3, track_box[i].box.y - 5), HersheyFonts::FONT_HERSHEY_SIMPLEX, font_scale, color, thick_ness);
+		}
+	}
+
+	void drawKalmanTrackObjects3d(TrackingBoxes track_box, cv::Scalar color, int frame_no)
+	{
+		double font_scale = 0.35; // m_frame.cols * 1.0f / aw;
+		int thick_ness = 1;		  // (int)(1.5 * font_scale + 0.5);
+
+		char textStr[256] = {0};
+		sprintf_s(textStr, sizeof(textStr), "frame no: %d", frame_no);
+		putText(m_frame, textStr, Point(m_frame.cols / 2 - 80, 70), HersheyFonts::FONT_HERSHEY_DUPLEX, font_scale, Scalar(0, 0, 255), thick_ness);
+
+		for (int i = 0; i < track_box.numBox; i++)
+		{
+			Scalar s = color;
+
+			if (track_box.trkBoxes[i].clsId > bicycle)
+				continue;
+
+			if (track_box.trkBoxes[i].used3d)
+			{
+				line(m_frame, Point(track_box.trkBoxes[i].side[0].x, track_box.trkBoxes[i].side[0].y), Point(track_box.trkBoxes[i].side[1].x, track_box.trkBoxes[i].side[1].y), Scalar(0, 255, 0), thick_ness);
+				line(m_frame, Point(track_box.trkBoxes[i].side[1].x, track_box.trkBoxes[i].side[1].y), Point(track_box.trkBoxes[i].side[2].x, track_box.trkBoxes[i].side[2].y), Scalar(0, 255, 0), thick_ness);
+				line(m_frame, Point(track_box.trkBoxes[i].side[2].x, track_box.trkBoxes[i].side[2].y), Point(track_box.trkBoxes[i].side[3].x, track_box.trkBoxes[i].side[3].y), Scalar(0, 255, 0), thick_ness);
+				line(m_frame, Point(track_box.trkBoxes[i].side[3].x, track_box.trkBoxes[i].side[3].y), Point(track_box.trkBoxes[i].side[0].x, track_box.trkBoxes[i].side[0].y), Scalar(0, 255, 0), thick_ness);
+				rectangle(m_frame, Rect(track_box.trkBoxes[i].box.x, track_box.trkBoxes[i].box.y, track_box.trkBoxes[i].box.width, track_box.trkBoxes[i].box.height), Scalar(255, 0, 0), thick_ness);
+				rectangle(m_frame, Rect(track_box.trkBoxes[i].fb.x, track_box.trkBoxes[i].fb.y, track_box.trkBoxes[i].fb.width, track_box.trkBoxes[i].fb.height), s, thick_ness);
+			}
+			else
+			{
+				rectangle(m_frame, Rect(track_box.trkBoxes[i].box.x, track_box.trkBoxes[i].box.y, track_box.trkBoxes[i].box.width, track_box.trkBoxes[i].box.height), s, thick_ness);
+			}
+
+			sprintf_s(textStr, sizeof(textStr), "%d", track_box.trkBoxes[i].objId);
+			putText(m_frame, textStr, Point(track_box.trkBoxes[i].box.x - 3, track_box.trkBoxes[i].box.y - 5), HersheyFonts::FONT_HERSHEY_SIMPLEX, font_scale, color, thick_ness);
+		}
+	}
+
+	void run_one_mp4_frame(string file_path, int iter_num = 1)
+	{
+		VideoCapture cap;
+		if (!cap.open(file_path))
+		{
+			printf("Open %s failed!\n", file_path.c_str());
+			return;
+		}
+
+		namedWindow(MAIN_WIN, 0);
+
+		int iter_cnt = 0;
+
+		InitSession();
+		kalman_tracker = ObjectTracker_create();
+		kalman_tracker_3d = ObjectTracking3D_create();
+
+		while (1) // ����Ƶ��ÿ֡��ͼƬ����frame
+		{
+			cap >> m_frame;
+			if (m_frame.empty())
+			{
+				iter_cnt++;
+				if (iter_cnt >= iter_num)
+				{
+					break;
+				}
+				else
+				{
+					cap.release();
+					if (!cap.open(file_path))
+					{
+						printf("Open %s failed!\n", file_path.c_str());
+						return;
+					}
+					frame_cnt = 0;
+					cap >> m_frame;
+				}
+			}
+
+			frame_cnt++;
+#if 1
+			DetectBoxes detectBoxes;
+			TrackingBox trackingBoxes[MAX_OBJECT_NUM];
+
+			detect_obj.CropDet(m_frame, det_ret);
+			// show_det(m_frame, det_ret.det, 1);
+			// show_segment(det_ret, 1);
+			getDetectFromDet(det_ret.det, detectBoxes);
+
+			int kalman_obj_num = ObjectTracker_updateTrackingBoxes(kalman_tracker, detectBoxes.boxRects, detectBoxes.numRect, trackingBoxes, MAX_OBJECT_NUM);
+
+			// ipc send trackingBoxes
+			drawKalmanTrackObjects(trackingBoxes, kalman_obj_num, Scalar(0, 0, 255), frame_cnt);
+
+#else
+
+			DetectBoxes detectBoxes;
+			TrackingBoxes trackingRet;
+
+			// getDetectFromParser(parser, detectBoxes);
+
+			detect_obj.CropDet(m_frame, det_ret);
+			getDetectFromDet(det_ret.det, detectBoxes);
+
+			ObjectTracking3D_tracking(kalman_tracker_3d, &detectBoxes, &trackingRet, 1);
+
+			drawKalmanTrackObjects3d(trackingRet, Scalar(0, 0, 255), frame_cnt);
+
+#endif
+
+			imshow(MAIN_WIN, m_frame);
+
+			int key_press = (continue_flag == 0) ? waitKey(0) : waitKey(2);
+			switch (key_press)
+			{
+			case 'c':
+			case 'C':
+				continue_flag = 1;
+				break;
+			case ' ':
+				continue_flag = 0;
+				break;
+			defualt:
+				break;
+			}
+		}
+
+		UninitSession();
+		ObjectTracker_release(kalman_tracker);
+		// ObjectTracking3D_release(kalman_tracker_3d);
+		cleanup();
+		waitKey(0);
+	}
+
+private:
+	Mat m_frame;
+	int frame_cnt = 0;
+	int continue_flag;
+
+	void *kalman_tracker;
+	void *kalman_tracker_3d;
+
+	int detect_flag;
+	DetResult det_ret;
+	DetectClass detect_obj;
+};
+
+int main(void)
+{
+	TrackAppTest test_obj;
+
+	// ����ת���ַ������ļ�·��������R"()"�������м伴�ɣ�����R"(D:\test\H5\123.info)"
+	string file_path = R"(./lib/x64/video/1.mp4)";
+
+	if (file_path.empty())
+	{
+		printf("file_path empty!\n");
+		return -1;
+	}
+
+	test_obj.run_one_mp4_frame(file_path, 100);
+
+	return 0;
+}
